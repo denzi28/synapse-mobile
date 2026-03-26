@@ -48,6 +48,9 @@ import {
   X,
 } from 'lucide-react-native';
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import type { TFunction } from 'i18next';
+import { useTranslation } from 'react-i18next';
+import i18n, { initI18n, setAppLanguage } from './i18n/i18n';
 
 const GEMINI_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY ?? '';
 
@@ -55,7 +58,7 @@ const ai = new GoogleGenAI({ apiKey: GEMINI_KEY });
 
 function getGeminiOrNetworkMessage(error: unknown): string {
   if (error instanceof SyntaxError) {
-    return 'The AI returned an unexpected response. Please try again.';
+    return i18n.t('errors.unexpectedAiResponse');
   }
   const msg =
     error != null &&
@@ -80,7 +83,7 @@ function getGeminiOrNetworkMessage(error: unknown): string {
     lower.includes('socket') ||
     lower.includes('timeout')
   ) {
-    return 'No internet or the connection dropped. Check your network and try again.';
+    return i18n.t('errors.networkOffline');
   }
   if (
     lower.includes('429') ||
@@ -89,7 +92,7 @@ function getGeminiOrNetworkMessage(error: unknown): string {
     lower.includes('resource exhausted') ||
     lower.includes('too many requests')
   ) {
-    return 'The AI service is busy or rate-limited. Wait a moment and try again.';
+    return i18n.t('errors.rateLimited');
   }
   if (
     lower.includes('401') ||
@@ -98,19 +101,19 @@ function getGeminiOrNetworkMessage(error: unknown): string {
     lower.includes('permission denied') ||
     lower.includes('invalid key')
   ) {
-    return 'Your Gemini API key may be wrong or blocked. Check EXPO_PUBLIC_GEMINI_API_KEY and try again.';
+    return i18n.t('errors.apiKeyBody');
   }
-  return 'Synapse could not reach Google Gemini. Check your internet connection and try again.';
+  return i18n.t('errors.networkBody');
 }
 
 function alertGeminiOrNetworkError(
   error?: unknown,
   options?: { title?: string; extra?: string }
 ) {
-  const title = options?.title ?? 'Cannot reach AI';
+  const title = options?.title ?? i18n.t('errors.cannotReachAi');
   let message = getGeminiOrNetworkMessage(error);
   if (options?.extra) message += `\n\n${options.extra}`;
-  Alert.alert(title, message, [{ text: 'OK' }]);
+  Alert.alert(title, message, [{ text: i18n.t('common.ok') }]);
 }
 
 /** When user opts in to "Edit by AI", reorganize raw notes (lesson detection + structure inside prompt). */
@@ -277,26 +280,27 @@ async function fetchScreenshotAssets(): Promise<MediaLibrary.Asset[]> {
   });
 }
 
-function formatSynapseTimestamp(iso?: string, friendlyDate?: string): string {
+function formatSynapseTimestamp(iso?: string, friendlyDate?: string, t?: TFunction): string {
+  const justNowMarker = 'Just now';
   if (iso) {
     try {
       const d = new Date(iso);
       if (!Number.isNaN(d.getTime())) {
         const abs = d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
-        if (friendlyDate && friendlyDate !== 'Just now') return `${abs} · ${friendlyDate}`;
+        if (friendlyDate && friendlyDate !== justNowMarker) return `${abs} · ${friendlyDate}`;
         return abs;
       }
     } catch {
       /* fall through */
     }
   }
-  return friendlyDate || 'Unknown';
+  return friendlyDate || (t ? t('common.unknown') : 'Unknown');
 }
 
-function memorySourceLabel(memory: Memory): string {
-  if (memory.id.startsWith('shot-')) return 'Screenshot import';
-  if (memory.id.startsWith('share-')) return 'Shared from another app';
-  return memory.type === 'image' ? 'Photo' : 'Text note';
+function memorySourceLabel(memory: Memory, translate: TFunction): string {
+  if (memory.id.startsWith('shot-')) return translate('card.srcScreenshot');
+  if (memory.id.startsWith('share-')) return translate('card.srcShare');
+  return memory.type === 'image' ? translate('card.srcPhoto') : translate('card.srcText');
 }
 
 function splitIntoColumns(items: Memory[]) {
@@ -745,6 +749,7 @@ function PhotoLightbox({
   topInset: number;
   bottomInset: number;
 }) {
+  const { t } = useTranslation();
   const open = memory !== null && memory.type === 'image';
   const scale = useRef(new Animated.Value(0.92)).current;
   const backdrop = useRef(new Animated.Value(0)).current;
@@ -793,7 +798,7 @@ function PhotoLightbox({
   const imgW = sw * 0.94;
   const imgH = Math.min(sh * 0.58, imgW * 1.38);
   const captionMaxH = sh * 0.24;
-  const caption = memory.captionPending ? 'Analyzing screenshot…' : memory.context;
+  const caption = memory.captionPending ? t('card.analyzing') : memory.context;
 
   return (
     <Modal
@@ -818,7 +823,7 @@ function PhotoLightbox({
         <Pressable
           style={StyleSheet.absoluteFillObject}
           onPress={runClose}
-          accessibilityLabel="Close full-screen photo"
+          accessibilityLabel={t('a11y.closePhoto')}
         />
         <View pointerEvents="box-none" style={[StyleSheet.absoluteFillObject, styles.photoLightboxLayer]}>
           <Pressable
@@ -826,7 +831,7 @@ function PhotoLightbox({
             style={[styles.photoLightboxCloseFab, { top: topInset + 6 }]}
             hitSlop={14}
             accessibilityRole="button"
-            accessibilityLabel="Close"
+            accessibilityLabel={t('a11y.close')}
           >
             <X size={22} color="#fafafa" strokeWidth={2.2} />
           </Pressable>
@@ -885,6 +890,7 @@ function MemoryCard({
   /** Stagger index × step; undefined = no entrance animation (existing cards). */
   entranceDelayMs?: number;
 }) {
+  const { t } = useTranslation();
   const captionPending = memory.type === 'image' && memory.captionPending;
   const opacity = useRef(new Animated.Value(entranceDelayMs !== undefined ? 0 : 1)).current;
   const translateY = useRef(new Animated.Value(entranceDelayMs !== undefined ? 10 : 0)).current;
@@ -992,25 +998,27 @@ function MemoryCard({
     <>
       <View style={styles.cardBackHeaderRow}>
         <Info size={14} color="#a1a1aa" />
-        <Text style={styles.cardBackHeaderTitle}>Details</Text>
+        <Text style={styles.cardBackHeaderTitle}>{t('card.details')}</Text>
       </View>
-      <Text style={styles.cardBackSectionLabel}>Added to Synapse</Text>
-      <Text style={styles.cardBackMeta}>{formatSynapseTimestamp(memory.addedAt, memory.date)}</Text>
-      <Text style={styles.cardBackSectionLabel}>Source</Text>
-      <Text style={styles.cardBackMeta}>{memorySourceLabel(memory)}</Text>
+      <Text style={styles.cardBackSectionLabel}>{t('card.addedAt')}</Text>
+      <Text style={styles.cardBackMeta}>{formatSynapseTimestamp(memory.addedAt, memory.date, t)}</Text>
+      <Text style={styles.cardBackSectionLabel}>{t('card.source')}</Text>
+      <Text style={styles.cardBackMeta}>{memorySourceLabel(memory, t)}</Text>
       {!!folderLabel && (
         <>
-          <Text style={styles.cardBackSectionLabel}>Folder</Text>
+          <Text style={styles.cardBackSectionLabel}>{t('card.folder')}</Text>
           <Text style={styles.cardBackMeta}>{folderLabel}</Text>
         </>
       )}
       {captionPending && (
         <>
-          <Text style={styles.cardBackSectionLabel}>Status</Text>
-          <Text style={styles.cardBackMeta}>Caption still generating…</Text>
+          <Text style={styles.cardBackSectionLabel}>{t('card.status')}</Text>
+          <Text style={styles.cardBackMeta}>{t('card.statusCaptionPending')}</Text>
         </>
       )}
-      <Text style={styles.cardBackSectionLabel}>{memory.type === 'image' ? 'Caption & detail' : 'Note & AI context'}</Text>
+      <Text style={styles.cardBackSectionLabel}>
+        {memory.type === 'image' ? t('card.captionDetail') : t('card.noteContext')}
+      </Text>
       <Text style={styles.cardBackBody}>{memory.context}</Text>
     </>
   );
@@ -1073,7 +1081,7 @@ function MemoryCard({
                   <View style={styles.imageCaptionPendingRow}>
                     <ActivityIndicator size="small" color="#e4e4e7" />
                     <Text style={styles.imageCaptionPendingText} numberOfLines={2}>
-                      Analyzing screenshot…
+                      {t('card.analyzing')}
                     </Text>
                   </View>
                 ) : (
@@ -1082,9 +1090,7 @@ function MemoryCard({
                   </Text>
                 )}
                 {showTapHint && (
-                  <Text style={styles.cardTapHint}>
-                    Tap to flip · Double-tap to enlarge
-                  </Text>
+                  <Text style={styles.cardTapHint}>{t('card.tapFlipDetails')}</Text>
                 )}
               </LinearGradient>
             </Pressable>
@@ -1109,9 +1115,9 @@ function MemoryCard({
                 }}
                 style={({ pressed }) => [styles.cardBackFlipBar, pressed && styles.cardBackFlipBarPressed]}
                 accessibilityRole="button"
-                accessibilityLabel="Flip card to front"
+                accessibilityLabel={t('a11y.flipToFront')}
               >
-                <Text style={styles.cardBackFlipBarText}>Tap to flip back</Text>
+                <Text style={styles.cardBackFlipBarText}>{t('card.tapFlipBack')}</Text>
               </Pressable>
               <ScrollView
                 style={styles.cardBackScrollFlex}
@@ -1172,9 +1178,11 @@ function MemoryCard({
                       </Text>
                     </View>
                   )}
-                  <Text style={styles.textCardDate}>{memory.date}</Text>
+                  <Text style={styles.textCardDate}>
+                    {memory.date === 'Just now' ? t('common.justNow') : memory.date}
+                  </Text>
                   {showTapHint && (
-                    <Text style={styles.cardTapHintText}>Tap to flip · full note & metadata</Text>
+                    <Text style={styles.cardTapHintText}>{t('card.tapFlipNote')}</Text>
                   )}
                 </View>
               </View>
@@ -1200,9 +1208,9 @@ function MemoryCard({
                 }}
                 style={({ pressed }) => [styles.cardBackFlipBar, pressed && styles.cardBackFlipBarPressed]}
                 accessibilityRole="button"
-                accessibilityLabel="Flip card to front"
+                accessibilityLabel={t('a11y.flipToFront')}
               >
-                <Text style={styles.cardBackFlipBarText}>Tap to flip back</Text>
+                <Text style={styles.cardBackFlipBarText}>{t('card.tapFlipBack')}</Text>
               </Pressable>
               <ScrollView
                 style={styles.cardBackScrollFlex}
@@ -1238,6 +1246,7 @@ function MemoryCard({
 }
 
 function AppShell() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const [memoriesHydrated, setMemoriesHydrated] = useState(false);
   const [memories, setMemories] = useState<Memory[]>(INITIAL_MEMORIES);
@@ -1348,12 +1357,12 @@ function AppShell() {
       if (now - backgroundGeminiAlertAt.current > 20_000) {
         backgroundGeminiAlertAt.current = now;
         alertGeminiOrNetworkError(e, {
-          title: 'Could not auto-file lesson',
-          extra: 'The memory is still saved; you can move it to a lesson with a long-press when AI is available.',
+          title: t('errors.autoFileLessonTitle'),
+          extra: t('errors.autoFileLessonExtra'),
         });
       }
     }
-  }, []);
+  }, [t]);
 
   const syncNewScreenshots = useCallback(async () => {
     if (!GEMINI_KEY || isAndroidExpoGo()) return;
@@ -1384,7 +1393,7 @@ function AppShell() {
             id: memoryId,
             type: 'image',
             content: uri,
-            context: 'Analyzing screenshot…',
+            context: i18n.t('screenshot.analyzingContext'),
             date: 'Just now',
             addedAt: new Date().toISOString(),
             captionPending: true,
@@ -1404,7 +1413,9 @@ function AppShell() {
                   'Describe this screenshot in extreme detail for search: visible text, apps, UI, context. Be concise but comprehensive.',
                 ],
               });
-              const context = (response.text || 'Screenshot').trim() || 'Screenshot';
+              const context =
+                (response.text || i18n.t('screenshot.defaultContext')).trim() ||
+                i18n.t('screenshot.defaultContext');
               setMemories((prev) =>
                 prev.map((m) =>
                   m.id === memoryId ? { ...m, context, captionPending: false } : m
@@ -1417,14 +1428,14 @@ function AppShell() {
               if (now - backgroundGeminiAlertAt.current > 20_000) {
                 backgroundGeminiAlertAt.current = now;
                 alertGeminiOrNetworkError(e, {
-                  title: 'Screenshot not described',
-                  extra: 'Check your connection. New screenshots are saved without an AI caption until Gemini is reachable again.',
+                  title: t('screenshot.notDescribedTitle'),
+                  extra: t('screenshot.notDescribedExtra'),
                 });
               }
               setMemories((prev) =>
                 prev.map((m) =>
                   m.id === memoryId
-                    ? { ...m, context: 'Screenshot (AI unavailable)', captionPending: false }
+                    ? { ...m, context: i18n.t('screenshot.unavailableLabel'), captionPending: false }
                     : m
                 )
               );
@@ -1440,20 +1451,18 @@ function AppShell() {
       screenshotSyncLock.current = false;
       setIsScreenshotSyncing(false);
     }
-  }, [applyAutoLessonFolder, queueCardEntrance]);
+  }, [applyAutoLessonFolder, queueCardEntrance, t]);
 
   const requestScreenshotSync = useCallback(async () => {
     try {
       if (!GEMINI_KEY) {
-        Alert.alert('API key required', 'Add EXPO_PUBLIC_GEMINI_API_KEY to describe screenshots with AI.');
+        Alert.alert(t('screenshot.apiKeyTitle'), t('screenshot.apiKeyBody'));
         return;
       }
       if (isAndroidExpoGo()) {
-        Alert.alert(
-          'Shots need a dev build on Android',
-          'Expo Go on Android cannot access photos for screenshot import (Google permission limits). Create a development build: npx expo run:android',
-          [{ text: 'OK' }]
-        );
+        Alert.alert(t('screenshot.devBuildTitle'), t('screenshot.devBuildBody'), [
+          { text: t('common.ok') },
+        ]);
         return;
       }
 
@@ -1461,9 +1470,9 @@ function AppShell() {
       const result = await MediaLibrary.requestPermissionsAsync(false, granular);
 
       if (!result.granted) {
-        Alert.alert('Photos access needed', 'Synapse needs photo library access to find new screenshots.', [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Open settings', onPress: () => void Linking.openSettings() },
+        Alert.alert(t('screenshot.photosTitle'), t('screenshot.photosBody'), [
+          { text: t('common.cancel'), style: 'cancel' },
+          { text: t('common.openSettings'), onPress: () => void Linking.openSettings() },
         ]);
         return;
       }
@@ -1479,13 +1488,13 @@ function AppShell() {
 
       await syncNewScreenshots();
 
-      Alert.alert('Shots on', 'New screenshots will be added when you open or return to the app.');
+      Alert.alert(t('screenshot.shotsOnTitle'), t('screenshot.shotsOnBody'));
     } catch (e) {
       console.error('requestScreenshotSync', e);
       const message = e instanceof Error ? e.message : String(e);
-      Alert.alert('Could not enable Shots', message);
+      Alert.alert(t('screenshot.enableFailedTitle'), message);
     }
-  }, [syncNewScreenshots]);
+  }, [syncNewScreenshots, t]);
 
   requestScreenshotSyncRef.current = requestScreenshotSync;
 
@@ -1496,24 +1505,24 @@ function AppShell() {
 
   const onScreenshotChipPress = useCallback(() => {
     if (screenshotSyncOn) {
-      Alert.alert('Screenshot sync', 'Stop importing new screenshots when you open the app?', [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Turn off', style: 'destructive', onPress: () => void disableScreenshotSync() },
+      Alert.alert(t('screenshot.syncTitle'), t('screenshot.syncTurnOff'), [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('common.turnOff'),
+          style: 'destructive',
+          onPress: () => void disableScreenshotSync(),
+        },
       ]);
     } else {
-      Alert.alert(
-        'Import screenshots',
-        'Synapse will ask for photo access, then add new screenshots from your gallery when you open or return to the app. The first time, existing screenshots are marked seen so your library is not reprocessed.',
-        [
-          { text: 'Not now', style: 'cancel' },
-          {
-            text: 'Continue',
-            onPress: () => scheduleAfterAlert(() => void requestScreenshotSync()),
-          },
-        ]
-      );
+      Alert.alert(t('screenshot.importTitle'), t('screenshot.importBody'), [
+        { text: t('common.notNow'), style: 'cancel' },
+        {
+          text: t('common.continue'),
+          onPress: () => scheduleAfterAlert(() => void requestScreenshotSync()),
+        },
+      ]);
     }
-  }, [screenshotSyncOn, requestScreenshotSync, disableScreenshotSync]);
+  }, [screenshotSyncOn, requestScreenshotSync, disableScreenshotSync, t]);
 
   useEffect(() => {
     void (async () => {
@@ -1590,7 +1599,7 @@ function AppShell() {
   }, [syncNewScreenshots]);
 
   useEffect(() => {
-    const t = setTimeout(() => {
+    const introTimer = setTimeout(() => {
       void (async () => {
         const seen = await AsyncStorage.getItem(STORAGE_SCREENSHOT_INTRO);
         if (seen) return;
@@ -1599,27 +1608,23 @@ function AppShell() {
           await AsyncStorage.setItem(STORAGE_SCREENSHOT_INTRO, 'true');
           return;
         }
-        Alert.alert(
-          'Sync screenshots?',
-          'Import new screenshots into Synapse when you open the app. You can turn this off anytime using the Shots control in the header.',
-          [
-            {
-              text: 'Not now',
-              style: 'cancel',
-              onPress: () => void AsyncStorage.setItem(STORAGE_SCREENSHOT_INTRO, 'true'),
+        Alert.alert(i18n.t('screenshot.introTitle'), i18n.t('screenshot.introBody'), [
+          {
+            text: i18n.t('common.notNow'),
+            style: 'cancel',
+            onPress: () => void AsyncStorage.setItem(STORAGE_SCREENSHOT_INTRO, 'true'),
+          },
+          {
+            text: i18n.t('common.setUp'),
+            onPress: () => {
+              void AsyncStorage.setItem(STORAGE_SCREENSHOT_INTRO, 'true');
+              scheduleAfterAlert(() => void requestScreenshotSyncRef.current());
             },
-            {
-              text: 'Set up',
-              onPress: () => {
-                void AsyncStorage.setItem(STORAGE_SCREENSHOT_INTRO, 'true');
-                scheduleAfterAlert(() => void requestScreenshotSyncRef.current());
-              },
-            },
-          ]
-        );
+          },
+        ]);
       })();
     }, 1200);
-    return () => clearTimeout(t);
+    return () => clearTimeout(introTimer);
   }, []);
 
   const windowHeight = Dimensions.get('window').height;
@@ -1727,24 +1732,15 @@ function AppShell() {
 
   const ensureApiKey = useCallback(() => {
     if (!GEMINI_KEY) {
-      Alert.alert(
-        'API key missing',
-        'Add EXPO_PUBLIC_GEMINI_API_KEY to a .env file in synapse-mobile (see .env.example), then restart Expo.'
-      );
+      Alert.alert(t('errors.apiMissingTitle'), t('errors.apiMissingBody'));
       return false;
     }
     return true;
-  }, []);
+  }, [t]);
 
   const showAiTrustExplainer = useCallback(() => {
-    Alert.alert(
-      'Private by design',
-      'Notes and images you save in Synapse stay on this device. There is no Synapse server that stores your library, sells your data, or lets anyone browse what you uploaded.\n\n' +
-        'When you use AI (search, photo descriptions, or Edit by AI), only what that single action needs (a snippet of text or one image) is sent to Google Gemini so it can reply. Nothing extra is harvested "in the background," and Synapse does not look at your pictures beyond what you put in the app.\n\n' +
-        'Screenshot import only runs when you turn Shots on and grant photo access; you can turn it off anytime. Delete memories whenever you like.',
-      [{ text: 'Got it' }]
-    );
-  }, []);
+    Alert.alert(t('errors.trustTitle'), t('errors.trustBody'), [{ text: t('common.gotIt') }]);
+  }, [t]);
 
   const exitDeleteSelectMode = useCallback(() => {
     setDeleteSelectMode(false);
@@ -1805,15 +1801,15 @@ function AppShell() {
     (ids: string[]) => {
       if (ids.length === 0) return;
       closeMoveMemorySheet();
-      const title = 'Delete memories?';
+      const title = t('delete.titleBulk');
       const message =
         ids.length === 1
-          ? 'This memory will be removed. Photos and notes are only deleted from Synapse—not from your gallery.'
-          : `Delete ${ids.length} memories? They will be removed from Synapse only—not from your gallery.`;
+          ? t('delete.sheetOne')
+          : t('delete.sheetMany', { count: ids.length });
       Alert.alert(title, message, [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('delete.cancel'), style: 'cancel' },
         {
-          text: 'Delete',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: () => {
             setMemories((prev) => {
@@ -1833,7 +1829,7 @@ function AppShell() {
         },
       ]);
     },
-    [exitDeleteSelectMode, closeMoveMemorySheet]
+    [exitDeleteSelectMode, closeMoveMemorySheet, t]
   );
 
   const confirmBulkDelete = useCallback(() => {
@@ -1853,25 +1849,34 @@ function AppShell() {
     if (idsToRemove.length === 0 && folderSet.size > 0) {
       message =
         folderSet.size === 1
-          ? `Remove the empty lesson folder “${namesStr || 'this folder'}” from Synapse?`
-          : `Remove ${folderSet.size} empty lesson folders from Synapse? (${namesStr})`;
+          ? t('delete.confirmMemoriesSingle', {
+              name: namesStr || t('delete.thisFolder'),
+            })
+          : t('delete.confirmMemoriesMany', { count: folderSet.size, names: namesStr });
     } else if (folderSet.size > 0) {
-      message = `This will delete ${folderSet.size} lesson folder${
-        folderSet.size > 1 ? 's' : ''
-      }${namesStr ? ` (${namesStr})` : ''} and ${idsToRemove.length} memor${
-        idsToRemove.length > 1 ? 'ies' : 'y'
-      } (including everything inside those folders). Photos stay in your gallery; only Synapse is cleared.`;
+      const isTr = i18n.language.startsWith('tr');
+      const folderWord =
+        folderSet.size > 1 ? (isTr ? 'klasörleri' : 'folders') : isTr ? 'klasörü' : 'folder';
+      const memoryWord =
+        idsToRemove.length > 1 ? (isTr ? 'anı' : 'memories') : isTr ? 'anı' : 'memory';
+      message = t('delete.bulkMixed', {
+        folderCount: folderSet.size,
+        names: namesStr ? ` (${namesStr})` : '',
+        memoryCount: idsToRemove.length,
+        folderWord,
+        memoryWord,
+      });
     } else {
       message =
         idsToRemove.length === 1
-          ? 'This memory will be removed from Synapse—not from your gallery.'
-          : `Delete ${idsToRemove.length} memories from Synapse? They stay in your gallery if they are photos.`;
+          ? t('delete.confirmOne')
+          : t('delete.confirmMany', { count: idsToRemove.length });
     }
 
-    Alert.alert('Delete from Synapse?', message, [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('delete.title'), message, [
+      { text: t('delete.cancel'), style: 'cancel' },
       {
-        text: 'Delete',
+        text: t('common.delete'),
         style: 'destructive',
         onPress: () => {
           const idSet = new Set(idsToRemove);
@@ -1896,7 +1901,7 @@ function AppShell() {
         },
       },
     ]);
-  }, [memories, selectedMemoryIds, selectedLessonFolderIds, lessonFolders, exitDeleteSelectMode]);
+  }, [memories, selectedMemoryIds, selectedLessonFolderIds, lessonFolders, exitDeleteSelectMode, t]);
 
   const resolveFolderForShareSnippet = useCallback(async (snippet: string) => {
     let folderId: string | undefined;
@@ -1924,10 +1929,7 @@ function AppShell() {
   const processIncomingShare = useCallback(
     async (intent: ShareIntent) => {
       if (!GEMINI_KEY) {
-        Alert.alert(
-          'Synapse',
-          'Add EXPO_PUBLIC_GEMINI_API_KEY to your .env to save items shared from other apps.'
-        );
+        Alert.alert(t('common.synapse'), t('share.needKey'));
         return;
       }
 
@@ -1935,10 +1937,7 @@ function AppShell() {
         intent.files?.length &&
         !intent.files.some((f) => f.mimeType.startsWith('image/'))
       ) {
-        Alert.alert(
-          'Synapse',
-          'Shared attachments must be images for now. Try sharing a photo, text, or a link.'
-        );
+        Alert.alert(t('common.synapse'), t('share.badAttachment'));
         return;
       }
 
@@ -1966,7 +1965,7 @@ function AppShell() {
               'Describe this image in extreme detail so it can be searched later. Include visible text, apps, UI, objects, and context. Be concise but comprehensive.',
             ],
           });
-          const context = (aiResponse.text || '').trim() || 'Shared image';
+          const context = (aiResponse.text || '').trim() || t('share.sharedImage');
           const { folderId, newFolder } = await resolveFolderForShareSnippet(context);
           if (newFolder) setLessonFolders((p) => [...p, newFolder]);
           const shareMemoryId = `share-${Date.now()}`;
@@ -2014,19 +2013,16 @@ function AppShell() {
           return;
         }
 
-        Alert.alert(
-          'Synapse',
-          'This share is empty or not supported. Share text, a link, or an image.'
-        );
+        Alert.alert(t('common.synapse'), t('share.empty'));
       } catch (e) {
         console.warn('share intent', e);
         alertGeminiOrNetworkError(e, {
-          title: 'Could not import',
-          extra: 'Check your internet connection and try sharing again. If you were sharing a file, try another app or format.',
+          title: t('errors.importTitle'),
+          extra: t('errors.importExtra'),
         });
       }
     },
-    [resolveFolderForShareSnippet, queueCardEntrance]
+    [resolveFolderForShareSnippet, queueCardEntrance, t]
   );
 
   const sharePayloadKey = useMemo(() => {
@@ -2041,9 +2037,9 @@ function AppShell() {
 
   useEffect(() => {
     if (shareIntentModuleError) {
-      Alert.alert('Share', shareIntentModuleError);
+      Alert.alert(t('errors.shareModuleTitle'), shareIntentModuleError);
     }
-  }, [shareIntentModuleError]);
+  }, [shareIntentModuleError, t]);
 
   useEffect(() => {
     if (!shareIntentReady || !hasShareIntent || shareImportLock.current) return;
@@ -2138,7 +2134,7 @@ Respond strictly in JSON format matching the schema.`;
 
       const result = JSON.parse(response.text || '{}');
 
-      setAiAnswer(result.answer || "I couldn't process that request.");
+      setAiAnswer(result.answer || t('search.processFailed'));
 
       if (result.relevantIds && Array.isArray(result.relevantIds)) {
         const filtered = memories.filter((m) => result.relevantIds.includes(m.id));
@@ -2148,7 +2144,7 @@ Respond strictly in JSON format matching the schema.`;
       }
     } catch (error) {
       console.error('Search error:', error);
-      alertGeminiOrNetworkError(error, { extra: 'Tap the search button again when you are back online.' });
+      alertGeminiOrNetworkError(error, { extra: t('search.retryOnline') });
       setAiAnswer(null);
       setDisplayedMemories(filterMemoriesByFolder(memories, activeLessonFolderId));
     } finally {
@@ -2174,7 +2170,7 @@ Respond strictly in JSON format matching the schema.`;
   const pickImage = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert('Photos', 'Photo library access is needed to attach images.');
+      Alert.alert(t('photos.pickerTitle'), t('photos.pickerBody'));
       return;
     }
 
@@ -2195,18 +2191,18 @@ Respond strictly in JSON format matching the schema.`;
     try {
       const has = await Clipboard.hasImageAsync();
       if (!has) {
-        Alert.alert('Clipboard', 'No image found on the clipboard.');
+        Alert.alert(t('clipboard.title'), t('clipboard.noImage'));
         return;
       }
       const img = await Clipboard.getImageAsync({ format: 'jpeg' });
       if (!img?.data) {
-        Alert.alert('Clipboard', 'Could not read the clipboard image.');
+        Alert.alert(t('clipboard.title'), t('clipboard.readFail'));
         return;
       }
       setPendingImage({ uri: img.data, mimeType: 'image/jpeg' });
     } catch (e) {
       console.error(e);
-      Alert.alert('Clipboard', 'Failed to paste image from clipboard.');
+      Alert.alert(t('clipboard.title'), t('clipboard.pasteFail'));
     }
   };
 
@@ -2251,7 +2247,7 @@ Respond strictly in JSON format matching the schema.`;
             console.warn('organize caption', e);
             userCaption = inputText.trim();
             alertGeminiOrNetworkError(e, {
-              extra: 'Using your original caption for the image description step.',
+              extra: t('errors.captionFallback'),
             });
           }
         }
@@ -2263,7 +2259,7 @@ Respond strictly in JSON format matching the schema.`;
           model: 'gemini-2.5-flash',
           contents: [{ inlineData: { data: base64Data, mimeType: pendingImage.mimeType } }, instruction],
         });
-        const aiPart = (response.text || '').trim() || 'Image uploaded without description.';
+        const aiPart = (response.text || '').trim() || t('image.noDescription');
         context = userCaption ? `${userCaption} — ${aiPart}` : aiPart;
       } else {
         let finalText = inputText.trim();
@@ -2274,8 +2270,8 @@ Respond strictly in JSON format matching the schema.`;
             console.warn('organize notes', e);
             finalText = inputText.trim();
             alertGeminiOrNetworkError(e, {
-              title: 'Could not reorganize',
-              extra: 'Your original text will be saved without AI edits. Try Edit by AI again when online.',
+              title: t('errors.reorganizeTitle'),
+              extra: t('errors.reorganizeExtra'),
             });
           }
         }
@@ -2312,8 +2308,8 @@ Respond strictly in JSON format matching the schema.`;
       } catch (e) {
         console.warn('lesson folder', e);
         alertGeminiOrNetworkError(e, {
-          title: 'Could not auto-file',
-          extra: 'Choose a lesson folder below, or save without one.',
+          title: t('errors.autoFileTitle'),
+          extra: t('errors.autoFileExtra'),
         });
         setPendingFolderDraft({ type, content, context, suggestedNewTitle: null });
         setFolderPickNewName('');
@@ -2341,8 +2337,8 @@ Respond strictly in JSON format matching the schema.`;
     } catch (error) {
       console.error('Upload error:', error);
       alertGeminiOrNetworkError(error, {
-        title: 'Could not save memory',
-        extra: 'Nothing was added. Check your connection and try Save Memory again.',
+        title: t('errors.saveMemoryTitle'),
+        extra: t('errors.saveMemoryExtra'),
       });
     } finally {
       setIsProcessing(false);
@@ -2366,7 +2362,9 @@ Respond strictly in JSON format matching the schema.`;
                 pressed && styles.pressed,
               ]}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              accessibilityLabel={deleteSelectMode ? 'Done selecting' : 'Select memories to delete'}
+              accessibilityLabel={
+                deleteSelectMode ? t('a11y.doneSelecting') : t('a11y.selectToDelete')
+              }
             >
               <Text style={styles.headerTrashEmoji}>🗑️</Text>
             </Pressable>
@@ -2375,7 +2373,9 @@ Respond strictly in JSON format matching the schema.`;
                 <View style={styles.logoMark}>
                   <Brain size={22} color="#09090b" strokeWidth={2.1} />
                 </View>
-                <Text style={styles.logoText}>Synapse</Text>
+                <Text style={styles.logoText} numberOfLines={1}>
+                  {t('common.synapse')}
+                </Text>
               </View>
               <View style={styles.headerChips}>
                 <Pressable
@@ -2392,43 +2392,74 @@ Respond strictly in JSON format matching the schema.`;
                     <Camera size={12} color={screenshotSyncOn ? '#34d399' : '#71717a'} />
                   )}
                   <Text style={[styles.shotChipText, !screenshotSyncOn && styles.shotChipTextMuted]}>
-                    {screenshotSyncOn ? 'Shots on' : 'Shots'}
+                    {screenshotSyncOn ? t('header.shotsOn') : t('header.shots')}
                   </Text>
                 </Pressable>
-                <Pressable
-                  onPress={showAiTrustExplainer}
-                  style={({ pressed }) => [styles.aiPill, pressed && styles.pressed]}
-                  accessibilityRole="button"
-                  accessibilityLabel="AI active, privacy details"
-                  accessibilityHint="Says how your notes and photos are handled"
-                  hitSlop={8}
-                >
-                  <Sparkles size={10} color="#34d399" strokeWidth={2} />
-                  <Text style={styles.aiPillText}>AI ACTIVE</Text>
-                </Pressable>
+                <View style={styles.langSwitch}>
+                  {(['en', 'tr'] as const).map((lng) => {
+                    const active = i18n.language.startsWith(lng);
+                    return (
+                      <Pressable
+                        key={lng}
+                        onPress={() => void setAppLanguage(lng)}
+                        style={({ pressed }) => [
+                          styles.langSeg,
+                          active && styles.langSegActive,
+                          pressed && styles.pressed,
+                        ]}
+                        accessibilityRole="button"
+                        accessibilityLabel={lng === 'en' ? t('lang.en') : t('lang.tr')}
+                      >
+                        <Text
+                          style={[
+                            styles.langFlagEmoji,
+                            !active && styles.langFlagEmojiInactive,
+                          ]}
+                        >
+                          {lng === 'en' ? '🇬🇧' : '🇹🇷'}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
               </View>
             </View>
 
-            <View style={styles.searchWrap}>
-              <Search size={16} color="#71717a" style={styles.searchIcon} />
-              <TextInput
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                placeholder="Ask your brain..."
-                placeholderTextColor="#71717a"
-                style={styles.searchInput}
-                returnKeyType="search"
-                onSubmitEditing={handleSearch}
-              />
-              {!!searchQuery && (
-                <Pressable onPress={handleSearch} style={styles.searchSend} hitSlop={8}>
-                  {isSearching ? (
-                    <ActivityIndicator size="small" color="#a1a1aa" />
-                  ) : (
-                    <Send size={16} color="#a1a1aa" />
-                  )}
-                </Pressable>
-              )}
+            <View style={styles.searchRow}>
+              <View style={styles.searchWrap}>
+                <Search size={16} color="#71717a" style={styles.searchIcon} />
+                <TextInput
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  placeholder={t('search.placeholder')}
+                  placeholderTextColor="#71717a"
+                  style={styles.searchInput}
+                  returnKeyType="search"
+                  onSubmitEditing={handleSearch}
+                />
+                {!!searchQuery && (
+                  <Pressable onPress={handleSearch} style={styles.searchSend} hitSlop={8}>
+                    {isSearching ? (
+                      <ActivityIndicator size="small" color="#a1a1aa" />
+                    ) : (
+                      <Send size={16} color="#a1a1aa" />
+                    )}
+                  </Pressable>
+                )}
+              </View>
+              <Pressable
+                onPress={showAiTrustExplainer}
+                style={({ pressed }) => [styles.aiPill, styles.aiPillSearchEnd, pressed && styles.pressed]}
+                accessibilityRole="button"
+                accessibilityLabel={t('a11y.aiPrivacy')}
+                accessibilityHint={t('a11y.aiPrivacyHint')}
+                hitSlop={8}
+              >
+                <Sparkles size={10} color="#34d399" strokeWidth={2} />
+                <Text style={styles.aiPillText} numberOfLines={1}>
+                  {t('header.aiActive')}
+                </Text>
+              </Pressable>
             </View>
 
             <ScrollView
@@ -2455,7 +2486,7 @@ Respond strictly in JSON format matching the schema.`;
                     !deleteSelectMode && activeLessonFolderId === null && styles.lessonFolderChipTextActive,
                   ]}
                 >
-                  {deleteSelectMode ? 'Folders: clear' : 'All'}
+                  {deleteSelectMode ? t('folders.foldersClear') : t('folders.all')}
                 </Text>
               </Pressable>
               {lessonFolders.map((f) => (
@@ -2584,15 +2615,13 @@ Respond strictly in JSON format matching the schema.`;
                 <Brain size={40} color="#52525b" style={{ opacity: 0.35 }} />
                 <Text style={styles.emptyText}>
                   {memories.length === 0
-                    ? 'Your brain is empty.'
+                    ? t('empty.brainEmpty')
                     : activeLessonFolderId
-                      ? 'No memories in this lesson yet.'
-                      : 'Your brain is empty.'}
+                      ? t('empty.noLesson')
+                      : t('empty.brainEmpty')}
                 </Text>
                 {memories.length === 0 && (
-                  <Text style={styles.emptyHint}>
-                    Save from other apps: Share → Synapse (needs a dev build, not Expo Go).
-                  </Text>
+                  <Text style={styles.emptyHint}>{t('empty.shareHint')}</Text>
                 )}
               </View>
             )}
@@ -2613,7 +2642,7 @@ Respond strictly in JSON format matching the schema.`;
               onPressOut={fabPressOut}
               hitSlop={12}
               accessibilityRole="button"
-              accessibilityLabel="Add memory"
+              accessibilityLabel={t('a11y.addMemory')}
             >
               <Animated.View style={[styles.fabPrimary, { transform: [{ scale: fabScale }] }]}>
                 <Plus size={28} color="#09090b" />
@@ -2630,15 +2659,23 @@ Respond strictly in JSON format matching the schema.`;
             >
               <Text style={styles.deleteToolbarHint}>
                 {selectedMemoryIds.length === 0 && selectedLessonFolderIds.length === 0
-                  ? 'Tap to select; long-press a card to move it to another lesson'
+                  ? t('deleteToolbar.hint')
                   : [
                       selectedMemoryIds.length > 0
-                        ? `${selectedMemoryIds.length} note${selectedMemoryIds.length !== 1 ? 's' : ''}`
+                        ? t(
+                            selectedMemoryIds.length === 1
+                              ? 'deleteToolbar.noteOne'
+                              : 'deleteToolbar.noteMany',
+                            { count: selectedMemoryIds.length }
+                          )
                         : null,
                       selectedLessonFolderIds.length > 0
-                        ? `${selectedLessonFolderIds.length} folder${
-                            selectedLessonFolderIds.length !== 1 ? 's' : ''
-                          }`
+                        ? t(
+                            selectedLessonFolderIds.length === 1
+                              ? 'deleteToolbar.folderOne'
+                              : 'deleteToolbar.folderMany',
+                            { count: selectedLessonFolderIds.length }
+                          )
                         : null,
                     ]
                       .filter(Boolean)
@@ -2675,7 +2712,7 @@ Respond strictly in JSON format matching the schema.`;
                       styles.deleteToolbarBtnTextDisabled,
                   ]}
                 >
-                  Delete
+                  {t('common.delete')}
                 </Text>
               </Pressable>
             </View>
@@ -2690,7 +2727,7 @@ Respond strictly in JSON format matching the schema.`;
             style={[styles.sheet, { maxHeight: sheetMaxHeight, marginBottom: addModalKbHeight }]}
           >
             <View style={styles.sheetHeader}>
-              <Text style={styles.sheetTitle}>Add to Brain</Text>
+              <Text style={styles.sheetTitle}>{t('addModal.title')}</Text>
               <Pressable onPress={closeAddModal} style={styles.sheetClose} hitSlop={12}>
                 <X size={18} color="#a1a1aa" />
               </Pressable>
@@ -2710,16 +2747,13 @@ Respond strictly in JSON format matching the schema.`;
                     </Pressable>
                     <View style={styles.editingHint}>
                       <CropIcon size={14} color="#a1a1aa" />
-                      <Text style={styles.editingHintText}>
-                        Cropped via system editor when you pick a photo. Add your caption below—AI will append
-                        searchable detail.
-                      </Text>
+                      <Text style={styles.editingHintText}>{t('addModal.cropHint')}</Text>
                     </View>
                   </View>
                   <TextInput
                     value={inputText}
                     onChangeText={setInputText}
-                    placeholder="Your caption (optional) — AI adds what it sees on top of this…"
+                    placeholder={t('addModal.captionPlaceholder')}
                     placeholderTextColor="#52525b"
                     multiline
                     style={styles.noteInputBelowPreview}
@@ -2729,7 +2763,7 @@ Respond strictly in JSON format matching the schema.`;
                 <TextInput
                   value={inputText}
                   onChangeText={setInputText}
-                  placeholder="Type a note, paste a link, or brain-dump..."
+                  placeholder={t('addModal.notePlaceholder')}
                   placeholderTextColor="#52525b"
                   multiline
                   style={styles.noteInput}
@@ -2756,11 +2790,12 @@ Respond strictly in JSON format matching the schema.`;
                         !editNotesWithAi && styles.lessonAiOptTitleMuted,
                       ]}
                     >
-                      Edit by AI
+                      {t('addModal.editByAi')}
                     </Text>
                     <Text style={styles.lessonAiOptSub}>
-                      Detects lesson-style notes and organizes headings & bullets when you save
-                      {pendingImage ? ' (your caption first)' : ''}
+                      {t('addModal.editByAiSub', {
+                        imageHint: pendingImage ? t('addModal.editByAiImageHint') : '',
+                      })}
                     </Text>
                   </View>
                   <View
@@ -2785,7 +2820,7 @@ Respond strictly in JSON format matching the schema.`;
                     <ImageIcon size={22} color="#d4d4d8" />
                   </Pressable>
                   <Pressable onPress={pasteImageFromClipboard} style={styles.iconBtn}>
-                    <Text style={styles.pasteLabel}>Paste</Text>
+                    <Text style={styles.pasteLabel}>{t('addModal.paste')}</Text>
                   </Pressable>
                 </View>
                 <Pressable
@@ -2800,12 +2835,12 @@ Respond strictly in JSON format matching the schema.`;
                   {isProcessing ? (
                     <View style={styles.saveInner}>
                       <ActivityIndicator size="small" color="#09090b" />
-                      <Text style={styles.saveBtnText}>AI Processing...</Text>
+                      <Text style={styles.saveBtnText}>{t('addModal.processing')}</Text>
                     </View>
                   ) : (
                     <View style={styles.saveInner}>
                       <Brain size={16} color="#09090b" />
-                      <Text style={styles.saveBtnText}>Save Memory</Text>
+                      <Text style={styles.saveBtnText}>{t('addModal.save')}</Text>
                     </View>
                   )}
                 </Pressable>
@@ -2832,7 +2867,7 @@ Respond strictly in JSON format matching the schema.`;
           />
           <View style={[styles.sheet, { maxHeight: sheetMaxHeight, marginBottom: pickSheetBottomMargin }]}>
             <View style={styles.sheetHeader}>
-              <Text style={styles.sheetTitle}>File this memory</Text>
+              <Text style={styles.sheetTitle}>{t('folderPick.fileTitle')}</Text>
               <Pressable
                 onPress={() => {
                   if (pendingFolderDraft) commitNewMemoryWithFolder(pendingFolderDraft, undefined);
@@ -2843,9 +2878,7 @@ Respond strictly in JSON format matching the schema.`;
                 <X size={18} color="#a1a1aa" />
               </Pressable>
             </View>
-            <Text style={styles.folderPickExplainer}>
-              Add this note to an existing lesson folder, create a new one, or save without filing.
-            </Text>
+            <Text style={styles.folderPickExplainer}>{t('folderPick.explainer')}</Text>
             <ScrollView
               ref={folderPickScrollRef}
               style={styles.sheetBody}
@@ -2856,9 +2889,9 @@ Respond strictly in JSON format matching the schema.`;
               keyboardShouldPersistTaps="handled"
               keyboardDismissMode="on-drag"
             >
-              <Text style={styles.folderPickSectionLabel}>Existing lessons</Text>
+              <Text style={styles.folderPickSectionLabel}>{t('folders.existingLessons')}</Text>
               {lessonFolders.length === 0 ? (
-                <Text style={styles.folderPickEmpty}>No folders yet — create one below.</Text>
+                <Text style={styles.folderPickEmpty}>{t('folders.noFoldersYet')}</Text>
               ) : (
                 lessonFolders.map((f) => (
                   <Pressable
@@ -2876,14 +2909,16 @@ Respond strictly in JSON format matching the schema.`;
                 ))
               )}
 
-              <Text style={styles.folderPickSectionLabel}>New lesson</Text>
+              <Text style={styles.folderPickSectionLabel}>{t('folders.newLesson')}</Text>
               <TextInput
                 value={folderPickNewName}
                 onChangeText={setFolderPickNewName}
                 placeholder={
                   pendingFolderDraft?.suggestedNewTitle
-                    ? `e.g. ${pendingFolderDraft.suggestedNewTitle}`
-                    : 'Name for this lesson…'
+                    ? t('folders.lessonPlaceholderExample', {
+                        suggestion: pendingFolderDraft.suggestedNewTitle,
+                      })
+                    : t('folders.lessonPlaceholder')
                 }
                 placeholderTextColor="#52525b"
                 style={styles.folderPickInput}
@@ -2916,7 +2951,7 @@ Respond strictly in JSON format matching the schema.`;
                     !folderPickNewName.trim() && styles.folderPickCreateBtnTextDisabled,
                   ]}
                 >
-                  Create folder & save
+                  {t('folderPick.createSave')}
                 </Text>
               </Pressable>
 
@@ -2926,7 +2961,7 @@ Respond strictly in JSON format matching the schema.`;
                 }}
                 style={({ pressed }) => [styles.folderPickSkipBtn, pressed && styles.pressed]}
               >
-                <Text style={styles.folderPickSkipText}>Save without folder</Text>
+                <Text style={styles.folderPickSkipText}>{t('folderPick.saveWithout')}</Text>
               </Pressable>
             </ScrollView>
           </View>
@@ -2943,7 +2978,7 @@ Respond strictly in JSON format matching the schema.`;
           <Pressable style={styles.modalBackdrop} onPress={closeMoveMemorySheet} />
           <View style={[styles.sheet, { maxHeight: sheetMaxHeight, marginBottom: pickSheetBottomMargin }]}>
             <View style={styles.sheetHeader}>
-              <Text style={styles.sheetTitle}>Move to lesson</Text>
+              <Text style={styles.sheetTitle}>{t('folderPick.moveTitle')}</Text>
               <Pressable onPress={closeMoveMemorySheet} style={styles.sheetClose} hitSlop={12}>
                 <X size={18} color="#a1a1aa" />
               </Pressable>
@@ -2955,10 +2990,7 @@ Respond strictly in JSON format matching the schema.`;
                   : moveTargetMemory.context}
               </Text>
             ) : null}
-            <Text style={styles.folderPickExplainer}>
-              Pick a folder or remove filing. The memory is not deleted—you can delete from the trash
-              mode in the header if needed.
-            </Text>
+            <Text style={styles.folderPickExplainer}>{t('folderPick.moveExplainer')}</Text>
             <ScrollView
               ref={movePickScrollRef}
               style={styles.sheetBody}
@@ -2969,7 +3001,7 @@ Respond strictly in JSON format matching the schema.`;
               keyboardShouldPersistTaps="handled"
               keyboardDismissMode="on-drag"
             >
-              <Text style={styles.folderPickSectionLabel}>Filing</Text>
+              <Text style={styles.folderPickSectionLabel}>{t('folders.filing')}</Text>
               <Pressable
                 onPress={() => applyMemoryLessonMove(undefined)}
                 style={({ pressed }) => [
@@ -2980,7 +3012,7 @@ Respond strictly in JSON format matching the schema.`;
               >
                 <Folder size={18} color="#a1a1aa" />
                 <Text style={styles.folderPickRowText} numberOfLines={2}>
-                  All brain — remove lesson tag
+                  {t('folderPick.allBrain')}
                 </Text>
                 {!moveTargetMemory?.folderId ? (
                   <Check size={18} color="#34d399" strokeWidth={2.4} />
@@ -2989,9 +3021,9 @@ Respond strictly in JSON format matching the schema.`;
                 )}
               </Pressable>
 
-              <Text style={styles.folderPickSectionLabel}>Existing lessons</Text>
+              <Text style={styles.folderPickSectionLabel}>{t('folders.existingLessons')}</Text>
               {lessonFolders.length === 0 ? (
-                <Text style={styles.folderPickEmpty}>No folders yet — create one below.</Text>
+                <Text style={styles.folderPickEmpty}>{t('folders.noFoldersYet')}</Text>
               ) : (
                 lessonFolders.map((f) => {
                   const isCurrent = moveTargetMemory?.folderId === f.id;
@@ -3019,11 +3051,11 @@ Respond strictly in JSON format matching the schema.`;
                 })
               )}
 
-              <Text style={styles.folderPickSectionLabel}>New lesson</Text>
+              <Text style={styles.folderPickSectionLabel}>{t('folders.newLesson')}</Text>
               <TextInput
                 value={moveFolderNewName}
                 onChangeText={setMoveFolderNewName}
-                placeholder="Name for this lesson…"
+                placeholder={t('folders.lessonPlaceholder')}
                 placeholderTextColor="#52525b"
                 style={styles.folderPickInput}
                 onFocus={() => {
@@ -3049,7 +3081,7 @@ Respond strictly in JSON format matching the schema.`;
                     !moveFolderNewName.trim() && styles.folderPickCreateBtnTextDisabled,
                   ]}
                 >
-                  Create folder & move here
+                  {t('folderPick.createMove')}
                 </Text>
               </Pressable>
 
@@ -3061,7 +3093,7 @@ Respond strictly in JSON format matching the schema.`;
                 style={({ pressed }) => [styles.folderPickDangerBtn, pressed && styles.pressed]}
               >
                 <Trash2 size={18} color="#f87171" />
-                <Text style={styles.folderPickDangerText}>Delete from Synapse…</Text>
+                <Text style={styles.folderPickDangerText}>{t('folderPick.deleteFromSynapse')}</Text>
               </Pressable>
             </ScrollView>
           </View>
@@ -3079,6 +3111,17 @@ Respond strictly in JSON format matching the schema.`;
 }
 
 export default function App() {
+  const [i18nReady, setI18nReady] = useState(false);
+  useEffect(() => {
+    void initI18n().then(() => setI18nReady(true));
+  }, []);
+  if (!i18nReady) {
+    return (
+      <View style={[styles.root, { alignItems: 'center', justifyContent: 'center' }]}>
+        <ActivityIndicator size="large" color="#34d399" />
+      </View>
+    );
+  }
   return (
     <SafeAreaProvider>
       <AppShell />
@@ -3115,8 +3158,7 @@ const styles = StyleSheet.create({
   headerTrashBtn: {
     position: 'absolute',
     right: 16,
-    /** Align with taller logo row (starts after header paddingTop). */
-    top: 17,
+    top: 13,
     zIndex: 2,
     paddingVertical: 6,
     paddingHorizontal: 8,
@@ -3133,13 +3175,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 10,
-    gap: 8,
-    paddingRight: 44,
+    gap: 10,
+    paddingRight: 48,
   },
   headerChips: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
     flexShrink: 0,
   },
   shotChip: {
@@ -3170,7 +3212,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    flexShrink: 0,
+    flexShrink: 1,
+    minWidth: 0,
+    flex: 1,
   },
   logoMark: {
     width: 38,
@@ -3203,10 +3247,47 @@ const styles = StyleSheet.create({
     color: '#6ee7b7',
     letterSpacing: 0.65,
   },
+  aiPillSearchEnd: {
+    flexShrink: 0,
+    maxWidth: 108,
+    paddingHorizontal: 7,
+  },
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 14,
+  },
+  langSwitch: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 999,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#3f3f46',
+    backgroundColor: 'rgba(39,39,42,0.8)',
+  },
+  langSeg: {
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  langSegActive: {
+    backgroundColor: 'rgba(16,185,129,0.18)',
+  },
+  langFlagEmoji: {
+    fontSize: 17,
+    lineHeight: 21,
+  },
+  langFlagEmojiInactive: {
+    opacity: 0.38,
+  },
   searchWrap: {
+    flex: 1,
+    minWidth: 0,
     position: 'relative',
     justifyContent: 'center',
-    marginBottom: 14,
   },
   searchIcon: {
     position: 'absolute',
