@@ -1,0 +1,215 @@
+export const en = {
+  common: {
+    justNow: 'Just now',
+    unknown: 'Unknown',
+    ok: 'OK',
+    cancel: 'Cancel',
+    delete: 'Delete',
+    continue: 'Continue',
+    notNow: 'Not now',
+    turnOff: 'Turn off',
+    openSettings: 'Open settings',
+    gotIt: 'Got it',
+    setUp: 'Set up',
+    synapse: 'Synapse',
+  },
+  onboarding: {
+    title: 'Welcome to Synapse',
+    skip: 'Skip',
+    next: 'Next',
+    done: 'Start',
+    page1Title: 'Save in seconds',
+    page1Body:
+      'Tap + to add a note or photo. You can also paste an image from your clipboard. When you save, Synapse can suggest a lesson folder.',
+    page2Title: 'Find anything',
+    page2Body:
+      'Ask a question in the search bar. The AI uses only the memories stored in the app to answer and highlight what is relevant.',
+    page3Title: 'Power tips',
+    page3Body:
+      'Long-press a card to move it to another lesson. Use the trash icon to enter select mode and delete in bulk. Toggle Shots to import new screenshots, and use the flags to switch language.',
+  },
+  header: {
+    shotsOn: 'Shots on',
+    shots: 'Shots',
+    aiActive: 'AI ACTIVE',
+  },
+  lang: {
+    en: 'EN',
+    tr: 'TR',
+  },
+  a11y: {
+    doneSelecting: 'Done selecting',
+    selectToDelete: 'Select memories to delete',
+    aiPrivacy: 'AI active, privacy details',
+    aiPrivacyHint: 'Says how your notes and photos are handled',
+    addMemory: 'Add memory',
+    closePhoto: 'Close full-screen photo',
+    close: 'Close',
+    flipToFront: 'Flip card to front',
+  },
+  search: {
+    placeholder: 'Ask your brain...',
+    retryOnline: 'Tap the search button again when you are back online.',
+    processFailed: "I couldn't process that request.",
+  },
+  folders: {
+    all: 'All',
+    foldersClear: 'Folders: clear',
+    existingLessons: 'Existing lessons',
+    newLesson: 'New lesson',
+    filing: 'Filing',
+    noFoldersYet: 'No folders yet — create one below.',
+    lessonPlaceholder: 'Name for this lesson…',
+    lessonPlaceholderExample: 'e.g. {{suggestion}}',
+  },
+  empty: {
+    brainEmpty: 'Your brain is empty.',
+    noLesson: 'No memories in this lesson yet.',
+    shareHint: 'Save from other apps: Share → Synapse (needs a dev build, not Expo Go).',
+  },
+  deleteToolbar: {
+    hint: 'Tap to select; long-press a card to move it to another lesson',
+    noteOne: '{{count}} note',
+    noteMany: '{{count}} notes',
+    folderOne: '{{count}} folder',
+    folderMany: '{{count}} folders',
+  },
+  card: {
+    tapFlipDetails: 'Tap to flip · Double-tap to enlarge',
+    tapFlipNote: 'Tap to flip · full note & metadata',
+    tapFlipBack: 'Tap to flip back',
+    analyzing: 'Analyzing screenshot…',
+    details: 'Details',
+    addedAt: 'Added to Synapse',
+    source: 'Source',
+    folder: 'Folder',
+    status: 'Status',
+    statusCaptionPending: 'Caption still generating…',
+    captionDetail: 'Caption & detail',
+    noteContext: 'Note & AI context',
+    srcScreenshot: 'Screenshot import',
+    srcShare: 'Shared from another app',
+    srcPhoto: 'Photo',
+    srcText: 'Text note',
+  },
+  addModal: {
+    title: 'Add to Brain',
+    captionPlaceholder: 'Your caption (optional) — AI adds what it sees on top of this…',
+    notePlaceholder: 'Type a note, paste a link, or brain-dump...',
+    editByAi: 'Edit by AI',
+    editByAiSub:
+      'Detects lesson-style notes and organizes headings & bullets when you save{{imageHint}}',
+    editByAiImageHint: ' (your caption first)',
+    paste: 'Paste',
+    processing: 'AI Processing...',
+    save: 'Save Memory',
+    cropHint:
+      'Cropped via system editor when you pick a photo. Add your caption below—AI will append searchable detail.',
+  },
+  folderPick: {
+    fileTitle: 'File this memory',
+    explainer:
+      'Add this note to an existing lesson folder, create a new one, or save without filing.',
+    createSave: 'Create folder & save',
+    saveWithout: 'Save without folder',
+    moveTitle: 'Move to lesson',
+    moveExplainer:
+      'Pick a folder or remove filing. The memory is not deleted—you can delete from the trash mode in the header if needed.',
+    allBrain: 'All brain — remove lesson tag',
+    createMove: 'Create folder & move here',
+    deleteFromSynapse: 'Delete from Synapse…',
+  },
+  delete: {
+    title: 'Delete from Synapse?',
+    titleBulk: 'Delete memories?',
+    cancel: 'Cancel',
+    confirmOne: 'This memory will be removed from Synapse—not from your gallery.',
+    confirmMany:
+      'Delete {{count}} memories from Synapse? They stay in your gallery if they are photos.',
+    confirmMemoriesSingle:
+      'Remove the empty lesson folder “{{name}}” from Synapse?',
+    confirmMemoriesMany: 'Remove {{count}} empty lesson folders from Synapse? ({{names}})',
+    thisFolder: 'this folder',
+    bulkMixed:
+      'This will delete {{folderCount}} lesson {{folderWord}}{{names}} and {{memoryCount}} {{memoryWord}} (including everything inside those folders). Photos stay in your gallery; only Synapse is cleared.',
+    sheetOne: 'This memory will be removed. Photos and notes are only deleted from Synapse—not from your gallery.',
+    sheetMany:
+      'Delete {{count}} memories? They will be removed from Synapse only—not from your gallery.',
+  },
+  errors: {
+    cannotReachAi: 'Cannot reach AI',
+    unexpectedAiResponse: 'The AI returned an unexpected response. Please try again.',
+    networkOffline:
+      'No internet or the connection dropped. Check your network and try again.',
+    rateLimited:
+      'The AI service is busy or rate-limited. Wait a moment and try again.',
+    shareModuleTitle: 'Share',
+    apiKeyBody:
+      'Your Gemini API key may be wrong or blocked. Check EXPO_PUBLIC_GEMINI_API_KEY and try again.',
+    networkBody: 'Synapse could not reach Google Gemini. Check your internet connection and try again.',
+    apiMissingTitle: 'API key missing',
+    apiMissingBody:
+      'Add EXPO_PUBLIC_GEMINI_API_KEY to a .env file in synapse-mobile (see .env.example), then restart Expo.',
+    trustTitle: 'Private by design',
+    trustBody:
+      'Notes and images you save in Synapse stay on this device. There is no Synapse server that stores your library, sells your data, or lets anyone browse what you uploaded.\n\nWhen you use AI (search, photo descriptions, or Edit by AI), only what that single action needs (a snippet of text or one image) is sent to Google Gemini so it can reply. Nothing extra is harvested "in the background," and Synapse does not look at your pictures beyond what you put in the app.\n\nScreenshot import only runs when you turn Shots on and grant photo access; you can turn it off anytime. Delete memories whenever you like.',
+    autoFileLessonTitle: 'Could not auto-file lesson',
+    autoFileLessonExtra:
+      'The memory is still saved; you can move it to a lesson with a long-press when AI is available.',
+    reorganizeTitle: 'Could not reorganize',
+    reorganizeExtra: 'Your original text will be saved without AI edits. Try Edit by AI again when online.',
+    autoFileTitle: 'Could not auto-file',
+    autoFileExtra: 'Choose a lesson folder below, or save without one.',
+    saveMemoryTitle: 'Could not save memory',
+    saveMemoryExtra: 'Nothing was added. Check your connection and try Save Memory again.',
+    captionFallback: 'Using your original caption for the image description step.',
+    importTitle: 'Could not import',
+    importExtra:
+      'Check your internet connection and try sharing again. If you were sharing a file, try another app or format.',
+  },
+  screenshot: {
+    apiKeyTitle: 'API key required',
+    apiKeyBody: 'Add EXPO_PUBLIC_GEMINI_API_KEY to describe screenshots with AI.',
+    devBuildTitle: 'Shots need a dev build on Android',
+    devBuildBody:
+      'Expo Go on Android cannot access photos for screenshot import (Google permission limits). Create a development build: npx expo run:android',
+    photosTitle: 'Photos access needed',
+    photosBody: 'Synapse needs photo library access to find new screenshots.',
+    shotsOnTitle: 'Shots on',
+    shotsOnBody: 'New screenshots will be added when you open or return to the app.',
+    enableFailedTitle: 'Could not enable Shots',
+    syncTitle: 'Screenshot sync',
+    syncTurnOff: 'Stop importing new screenshots when you open the app?',
+    importTitle: 'Import screenshots',
+    importBody:
+      'Synapse will ask for photo access, then add new screenshots from your gallery when you open or return to the app. The first time, existing screenshots are marked seen so your library is not reprocessed.',
+    notDescribedTitle: 'Screenshot not described',
+    notDescribedExtra:
+      'Check your connection. New screenshots are saved without an AI caption until Gemini is reachable again.',
+    introTitle: 'Sync screenshots?',
+    introBody:
+      'Import new screenshots into Synapse when you open the app. You can turn this off anytime using the Shots control in the header.',
+    unavailableLabel: 'Screenshot (AI unavailable)',
+    analyzingContext: 'Analyzing screenshot…',
+    defaultContext: 'Screenshot',
+  },
+  share: {
+    sharedImage: 'Shared image',
+    needKey: 'Add EXPO_PUBLIC_GEMINI_API_KEY to your .env to save items shared from other apps.',
+    badAttachment: 'Shared attachments must be images for now. Try sharing a photo, text, or a link.',
+    empty: 'This share is empty or not supported. Share text, a link, or an image.',
+  },
+  photos: {
+    pickerTitle: 'Photos',
+    pickerBody: 'Photo library access is needed to attach images.',
+  },
+  clipboard: {
+    title: 'Clipboard',
+    noImage: 'No image found on the clipboard.',
+    readFail: 'Could not read the clipboard image.',
+    pasteFail: 'Failed to paste image from clipboard.',
+  },
+  image: {
+    noDescription: 'Image uploaded without description.',
+  },
+};

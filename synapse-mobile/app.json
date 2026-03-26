@@ -1,0 +1,81 @@
+{
+  "expo": {
+    "name": "Synapse",
+    "slug": "synapse-mobile",
+    "version": "1.0.0",
+    "scheme": "synapse",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#09090b"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.synapse.brain",
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Synapse saves photos you choose and can import new screenshots from your library when you allow it.",
+        "NSPhotoLibraryAddUsageDescription": "Synapse may save processed images when you add memories."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#09090b"
+      },
+      "package": "com.synapse.brain",
+      "permissions": [
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.ACCESS_MEDIA_LOCATION",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.READ_MEDIA_VISUAL_USER_SELECTED",
+        "android.permission.READ_MEDIA_VIDEO",
+        "android.permission.READ_MEDIA_AUDIO"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Synapse needs photo access so you can attach images to memories."
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Synapse can import new screenshots from your gallery into your brain when you open the app.",
+          "savePhotosPermission": "Synapse may access photos you save for memories.",
+          "isAccessMediaLocationEnabled": true
+        }
+      ],
+      [
+        "expo-share-intent",
+        {
+          "iosActivationRules": {
+            "NSExtensionActivationSupportsText": true,
+            "NSExtensionActivationSupportsWebURLWithMaxCount": 1,
+            "NSExtensionActivationSupportsWebPageWithMaxCount": 1,
+            "NSExtensionActivationSupportsImageWithMaxCount": 5
+          },
+          "androidIntentFilters": ["text/*", "image/*"],
+          "androidMultiIntentFilters": ["image/*"]
+        }
+      ],
+      "./plugins/withWindowsAndroidNode.js"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "edbf5317-119e-4828-849b-bb4808cb92d9"
+      }
+    },
+    "owner": "denzi28"
+  }
+}
