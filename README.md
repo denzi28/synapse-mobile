@@ -104,6 +104,8 @@ Paylaşım hedefi, Android’de tam ekran görüntüsü akışı ve benzeri içi
 
 ### Android APK (EAS)
 
+Bu projede **`android` klasörü repoda tutulmaz**; EAS sunucusunda her derlemede **`expo prebuild`** ile üretilir. Böylece Gradle otolink hatalarından kaçınılır. Telefonda yerel debug için önce `npx expo prebuild`, sonra `npx expo run:android` kullan.
+
 1. `npm i -g eas-cli` ve `eas login`
 2. EAS ortam değişkenlerinde `EXPO_PUBLIC_GEMINI_API_KEY` (örnek: preview veya production). **Sensitive** veya **Plain text**; `EXPO_PUBLIC_*` EAS’ta Secret olamaz.
 3. Proje kökünde: `eas build -p android --profile preview`
@@ -135,6 +137,7 @@ Yerelde Git yoksa: `EAS_NO_VCS=1` ile tek seferlik yükleme mümkün ([Expo VCS]
 - `app.json`, `eas.json`: Expo ve EAS
 - `plugins/`: isteğe bağlı eklentiler
 - `assets/`: ikon ve splash
+- `android/` ve `ios/`: repoda yok; `npx expo prebuild` veya EAS derlemesi üretir
 
 ### Lisans
 
@@ -252,6 +255,8 @@ Use a **development build** or **release APK** for share-intent, full screenshot
 
 ### Building an Android APK (EAS)
 
+This repo **does not commit the `android` folder**. EAS runs **`expo prebuild`** on each cloud build so native autolinking stays correct. For a **local** Android run use `npx expo prebuild` first, then `npx expo run:android`.
+
 1. Install and log in: `npm i -g eas-cli`, then `eas login`.
 2. Configure env vars in EAS for `EXPO_PUBLIC_GEMINI_API_KEY` (for example preview or production). Use **Sensitive** or **Plain text** visibility. Keys named `EXPO_PUBLIC_...` cannot be Secret in EAS.
 3. From the project root:
@@ -288,6 +293,7 @@ If Git is not set up locally, you can use `EAS_NO_VCS=1` for a one-off upload (s
 - `app.json` / `eas.json`: Expo config and EAS build profiles
 - `plugins/`: custom config plugins if any
 - `assets/`: icons and splash
+- `android/` and `ios/`: not in git; created by `npx expo prebuild` or an EAS build
 
 ### License
 

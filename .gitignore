@@ -1,6 +1,10 @@
 node_modules/
 .expo/
 dist/
+
+# Regenerated on EAS Build and via `npx expo prebuild`. Committing a stale copy breaks autolinking (Gradle "No variants exist").
+/android
+/ios
 npm-debug.*
 *.jks
 *.p8
