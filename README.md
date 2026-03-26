@@ -71,61 +71,8 @@ Synapse, notların ve fotoğrafların için **telefonda kalan, gizliliğe önem 
 
 ### Kurulum
 
-```bash
-git clone <your-repo-url>
-cd synapse-mobile
-npm install
-```
+*APK dosyasını kurun ve çalıştırın, izinleri sağlayın. Kimse sizin yüklediğiniz fotoğrafları göremez.
 
-`.env` dosyası:
-
-```bash
-cp .env.example .env
-```
-
-Windows PowerShell:
-
-```powershell
-Copy-Item .env.example .env
-```
-
-`.env` içine:
-
-```env
-EXPO_PUBLIC_GEMINI_API_KEY=your_key_here
-```
-
-Geliştirme sunucusu:
-
-```bash
-npx expo start
-```
-
-Paylaşım hedefi, Android’de tam ekran görüntüsü akışı ve benzeri için **development build** veya **APK** kullan; **Expo Go** her özelliği kapsamaz.
-
-### Android APK (EAS)
-
-Bu projede **`android` klasörü repoda tutulmaz**; EAS sunucusunda her derlemede **`expo prebuild`** ile üretilir. Böylece Gradle otolink hatalarından kaçınılır. Telefonda yerelde debug için önce `npx expo prebuild`, sonra `npx expo run:android` kullan.
-
-**Önemli:** Bilgisayarındaki **`.env` dosyası EAS sunucusuna gitmez** (varsayılan olarak ignore). APK içine Gemini anahtarı gömülmesi için anahtarı **Expo web arayüzünde** veya **EAS ortam değişkeni** olarak tanımlayıp **yeniden derleme** yapmalısın. Aksi halde uygulama açılır ama kaydetme ve arama anahtar bulamadığı için hata verir.
-
-1. `npm i -g eas-cli` ve `eas login`
-2. Anahtarı EAS’a ver: **A)** [expo.dev](https://expo.dev) → hesabın → **synapse-mobile** → solda **Environment variables** (bazı arayüzlerde **Account** altında **Secrets**). **`EXPO_PUBLIC_GEMINI_API_KEY`** oluştur, ortam olarak **`preview`** seç. **B)** Veya terminalde: `eas env:create --name EXPO_PUBLIC_GEMINI_API_KEY --value "ANAHTARIN" --environment preview --visibility plaintext` (`eas login` gerekli). `eas.json` içinde **`preview` profili `environment: "preview"`** kullanıyor; böylece derleme bu değişkenleri görür.
-3. Proje kökünde: `eas build -p android --profile preview` (anahtarı ilk kez eklediysen `--clear-cache` kullanabilirsin)
-4. Telefonda bağlantıdan **APK** kur.
-
-Yerelde Git yoksa: `EAS_NO_VCS=1` ile tek seferlik yükleme mümkün ([Expo VCS](https://expo.fyi/eas-vcs-workflow)).
-
-### Komutlar
-
-| Komut | Açıklama |
-|-------|----------|
-| `npm start` | Expo geliştirme sunucusu |
-| `npm run android` | Android (`expo run:android`) |
-| `npm run ios` | iOS (`expo run:ios`) |
-| `npm run lint` | TypeScript kontrolü (`tsc --noEmit`) |
-
-### Teknolojiler
 
 - **Expo SDK 54**, **React Native 0.81**, **React 19**
 - **@google/genai** (Gemini)
@@ -206,7 +153,7 @@ The app UI is available in **English** and **Turkish**.
 | Capability | What it does |
 |------------|----------------|
 | **Brain search** | Query across your memories; Gemini returns a **concise answer** surfaced above the grid. |
-| **Image understanding** | Rich **context** for images so search is not blind to pixels. |
+| **Image understanding** | Rich **context** for images, so search is not blind to pixels. |
 | **Trust copy** | In-app explainer: **local library**; AI only when you use search, describe, or edit-by-AI flows. |
 
 #### Privacy and data
@@ -221,72 +168,7 @@ The app UI is available in **English** and **Turkish**.
 - **Expo / EAS** for builds ([Expo account](https://expo.dev))
 - **Google Gemini API key** ([Google AI Studio](https://aistudio.google.com/apikey))
 
-Dependencies for localization include **i18next**, **react-i18next**, and **expo-localization**.
-
-### Getting started
-
-```bash
-git clone <your-repo-url>
-cd synapse-mobile
-npm install
-```
-
-Create a `.env` file from the example:
-
-```bash
-cp .env.example .env
-```
-
-On Windows PowerShell:
-
-```powershell
-Copy-Item .env.example .env
-```
-
-Put your key in `.env`:
-
-```env
-EXPO_PUBLIC_GEMINI_API_KEY=your_key_here
-```
-
-Start the dev server:
-
-```bash
-npx expo start
-```
-
-Use a **development build** or **release APK** for share-intent, full screenshot flows on Android, and other native behaviors that **Expo Go** does not cover.
-
-### Building an Android APK (EAS)
-
-This repo **does not commit the `android` folder**. EAS runs **`expo prebuild`** on each cloud build so native autolinking stays correct. For a **local** Android run use `npx expo prebuild` first, then `npx expo run:android`.
-
-**Important:** Your local **`.env` is not sent to EAS** (it is not in git). The Gemini key is **baked into the APK at build time**, so you must define **`EXPO_PUBLIC_GEMINI_API_KEY`** in the **Expo website** (Environment variables for **preview**, if you use the preview profile) and **rebuild**. Otherwise the app opens but save and search fail with an API key error.
-
-1. Install and log in: `npm i -g eas-cli`, then `eas login`.
-2. Add the key to EAS. **Option A:** [expo.dev](https://expo.dev) → your account → project **synapse-mobile** → left sidebar **Environment variables** (if you do not see it, use Option B). Create **`EXPO_PUBLIC_GEMINI_API_KEY`**, set environment to **preview**. **Option B:** in the project folder run  
-   `eas env:create --name EXPO_PUBLIC_GEMINI_API_KEY --value "YOUR_KEY" --environment preview --visibility plaintext`  
-   after `eas login`. This project’s **`preview` build profile** uses `"environment": "preview"` in **eas.json** so cloud builds load those variables.
-3. From the project root:
-
-   ```bash
-   eas build -p android --profile preview
-   ```
-
-   After adding the variable for the first time, you can use `--clear-cache` once if the build still seems to miss it.
-
-4. Open the build artifact link on your phone and install the **APK**.
-
-If Git is not set up locally, you can use `EAS_NO_VCS=1` for a one-off upload (see [Expo VCS notes](https://expo.fyi/eas-vcs-workflow)).
-
-### Scripts
-
-| Command | Description |
-|---------|-------------|
-| `npm start` | Expo dev server |
-| `npm run android` | Run on Android (`expo run:android`) |
-| `npm run ios` | Run on iOS (`expo run:ios`) |
-| `npm run lint` | Typecheck (`tsc --noEmit`) |
+*Download the APK file and install it, and get the permissions, relax, no one will see your pictures other than you. Complete privacy is included, and it is open-source.
 
 ### Tech stack
 
